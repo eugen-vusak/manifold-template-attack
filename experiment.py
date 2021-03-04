@@ -1,5 +1,7 @@
-from utils.TA import TemplateAttack
+from sklearn.feature_selection import SelectKBest, f_regression
+
 from utils.measure import guessing_entropy_and_success_rate
+from utils.TA import TemplateAttack
 
 
 def run_experiment(data, output_fn, dim_rdc, n_traces, n_experiments):
@@ -12,11 +14,17 @@ def run_experiment(data, output_fn, dim_rdc, n_traces, n_experiments):
     ############################## Profiling ###############################
     ########################################################################
 
+    # feature selection
+    feature_sel = SelectKBest(f_regression, k=300)
+
     ta = TemplateAttack(output_fn)
 
     # calculate hamming value of sbox output
     # for the first bit of the plain text
     outputTrain = output_fn(ptTrain, keyTrain)
+
+    # feature selection fit_transform on train data
+    tracesTrain = feature_sel.fit_transform(tracesTrain, outputTrain)
 
     # dimensionality reduction fit_transform on train data
     tracesTrain = dim_rdc.fit_transform(tracesTrain, outputTrain)
@@ -27,6 +35,9 @@ def run_experiment(data, output_fn, dim_rdc, n_traces, n_experiments):
     ########################################################################
     ################################ Attack ################################
     ########################################################################
+
+    # feature selection transform test data
+    tracesTest = feature_sel.transform(tracesTest)
 
     # dimensionality reduction transform test data
     tracesTest = dim_rdc.transform(tracesTest)

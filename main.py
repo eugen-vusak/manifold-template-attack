@@ -37,14 +37,12 @@ leakage_models = [
 ]
 
 ######################## manifold transform parameters ########################
+# for HLLE: n_neighbors > n_components * (n_components + 3) / 2
 mf_parameters_dict = {
     "n_components": {
-        3: {"n_neighbors": [10]},
-        7: {"n_neighbors": [10, 20, 40]},
-        10: {"n_neighbors": [10, 30, 70]},
-        15: {"n_neighbors": [10, 50, 70, 150]},
-        25: {"n_neighbors": [10, 50, 400]},
-        40: {"n_neighbors": [50, 500, 1000]},
+        50: {"n_neighbors": [100, 250, 1000]},
+        100: {"n_neighbors": [200, 500, 2000]},
+        150: {"n_neighbors": [500, 750, 3000]},
     },
 }
 mf_n_jobs = None
