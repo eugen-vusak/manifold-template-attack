@@ -10,7 +10,12 @@ from utils.data import load_data
 from utils.feature_selection import SumOfDifferenceFeatureSelector
 from utils.parameters import generate_params_grid
 
-PREVIEW = True
+import os
+from datetime import datetime
+
+
+
+PREVIEW = False
 
 DATA_ROOT = Path("data")
 TARGET_BYTE = 0
@@ -141,6 +146,15 @@ def generate_all_dim_reductors():
 
 ################################### main ######################################
 
+# create output dir
+now = datetime.now()
+timestamp = now.strftime("%d_%m_%Y_%H_%M_%S")
+folderName = "run_" + timestamp
+directory = folderName
+parent_dir = "results/"
+path = os.path.join(parent_dir, directory)
+os.makedirs(path)
+
 for dataset in datasets:
     data = load_data(DATA_ROOT/dataset, TARGET_BYTE)
 
@@ -154,7 +168,7 @@ for dataset in datasets:
             print("Running experiment:", end=" ")
             print(dataset, leakage_model.name, dim_rdc_name, sep=" - ")
 
-            if PREVIEW:
+            if PREVIEW:                   
                 continue
 
             # try to run experimnt
@@ -167,8 +181,23 @@ for dataset in datasets:
             except Exception as e:
                 fail_msg = str(e)
 
-            # print(ge)
-            # print(sr)
-            # print(fail_msg)
 
-            # report to file or somewhere
+            # report to file 
+            #create file
+            fileName = dataset + "_"+ leakage_model.name + "_" + dim_rdc_name + ".txt"
+            resFile= open("results/"+folderName+"/"+fileName,"w+")
+            #write to file
+            if ge.size>0:
+                resFile.write("ge:")
+                resFile.write("\n")
+                for item in ge:
+                    resFile.write("%s;" % item)
+                resFile.write("\n")
+            if sr.size>0: 
+                resFile.write("sr:")
+                resFile.write("\n")
+                for item in sr:
+                    resFile.write("%s;" % item)
+                resFile.write("\n")
+            if fail_msg: resFile.write(fail_msg)
+            resFile.close()
