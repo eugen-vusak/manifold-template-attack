@@ -14,7 +14,7 @@ DATASET = "chipwhisperer"  # ascad_fixed, ascad_variable, ches_ctf, chipwhispere
 TARGET_BYTE = 0
 
 NUM_OF_FEATURES = 50
-FEATURE_SPACING = 5
+FEATURE_SPACING = 1
 
 GE_NUMBER_OF_EXPERIMENTS = 100
 GE_NUMBER_OF_TRACES = 10
@@ -36,7 +36,6 @@ train, test = load_data(DATA_ROOT/DATASET, TARGET_BYTE)
 
 # feature selection
 feature_sel = SelectKBest(f_regression, k=300)
-
 
 # dimensionality reduction (this is what we change)
 dim_rdc = SumOfDifferenceFeatureSelector(

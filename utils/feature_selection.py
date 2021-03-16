@@ -29,14 +29,15 @@ class SumOfDifferenceFeatureSelector(TransformerMixin, BaseEstimator):
             sumDiffs += np.abs(p_i - p_j)
 
         # select POIs
+        Nf = len(sumDiffs)
         for _ in range(self.n_components):
             # select best feature (largest diff)
             feature_i = np.nanargmax(sumDiffs)
             self.features.append(feature_i)
 
             # ignore neighbourhood around selected feature
-            ignore_start = feature_i - self.feature_spacing
-            ignore_end = feature_i + self.feature_spacing
+            ignore_start = max(feature_i - self.feature_spacing, 0)
+            ignore_end = min(feature_i + self.feature_spacing + 1, Nf)
             sumDiffs[ignore_start:ignore_end] = np.nan
 
         return self
