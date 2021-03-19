@@ -1,8 +1,9 @@
 import numpy as np
 from scipy.stats import multivariate_normal
+from sklearn.base import ClassifierMixin, BaseEstimator
 
 
-class TemplateAttack():
+class TemplateAttack(BaseEstimator, ClassifierMixin):
 
     def __init__(self, output_fn):
         self.output_fn = output_fn
@@ -88,3 +89,21 @@ class TemplateAttack():
             logpdfs = logpdfs[random_indexes]
 
         return logpdfs.sum(axis=0).argmax()
+
+    def fit(self, X, y):
+        traces = X[:, :-1]
+        plain = X[:, -1].astype(np.int32)
+
+        self.create_template(traces=traces,
+                             plain_text=plain, key=y)
+        return self
+
+    def predict(self, X):
+        traces = X[:, :-1]
+        plain = X[:, -1].astype(np.int32)
+        return self.guess_key(traces, plain)
+
+    def predict_proba(self, X):
+        traces = X[:, :-1]
+        plain = X[:, -1].astype(np.int32)
+        return self.logpdfs(traces, plain)
