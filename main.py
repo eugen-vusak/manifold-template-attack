@@ -1,3 +1,6 @@
+import os
+from datetime import datetime
+from math import floor
 from pathlib import Path
 
 # import umap  # takes a bit to import
@@ -8,24 +11,17 @@ from experiment import run_experiment
 from utils.aes import LeakageModel, get_aes_output_for_leakage
 from utils.data import load_data
 from utils.feature_selection import SumOfDifferenceFeatureSelector
-from utils.parameters import generate_params_grid
-
-import os
-from datetime import datetime
-
-
 
 PREVIEW = False
 
 DATA_ROOT = Path("data")
 TARGET_BYTE = 0
 
-GE_N_EXPERIMENTS = 50
-GE_N_TRACES = 10
+GE_N_EXPERIMENTS = 100
 
 
 datasets = [
-    "chipwhisperer",
+    # "chipwhisperer",
     "ascad_fixed",
     "ascad_variable",
     "ches_ctf"
@@ -36,73 +32,77 @@ leakage_models = [
     LeakageModel.HW
 ]
 
+
 ######################## manifold transform parameters ########################
+# for MLLE: n_neighbors >= n_components
 # for HLLE: n_neighbors > n_components * (n_components + 3) / 2
 mf_parameters_dict = {
     "n_components": {
+        10: {"n_neighbors": [20, 50, 200]},
+        25: {"n_neighbors": [50, 125, 500]},
         50: {"n_neighbors": [100, 250, 1000]},
+        75: {"n_neighbors": [150, 375, 1500]},
         100: {"n_neighbors": [200, 500, 2000]},
-        150: {"n_neighbors": [500, 750, 3000]},
     },
 }
+
+mf_n_components = mf_parameters_dict["n_components"].keys()
 mf_n_jobs = None
 
 ############################ SumOfDifference parameters #######################
-sod_n_components = mf_parameters_dict["n_components"].keys()
+sod_n_components = mf_n_components
 sod_feature_spacing = 5
 
 
 ################################ PCA parameters ###############################
-pca_n_components = sod_n_components
+pca_n_components = mf_n_components
 
 ################################ end parameters ###############################
 
 
-def generate_manifold_tranformations(n_neighbors, n_components):
-
-    name_format = f"{{}}_{n_neighbors}_{n_components}"
+def generate_manifold_tranformations(n_components):
 
     isomap_clf = manifold.Isomap(
-        n_neighbors=n_neighbors, n_components=n_components,
+        n_components=n_components,
         n_jobs=mf_n_jobs
     )
 
     lle_clf = manifold.LocallyLinearEmbedding(
-        n_neighbors=n_neighbors,  n_components=n_components,
+        n_components=n_components,
         method='standard',
         n_jobs=mf_n_jobs
     )
 
     mlle_clf = manifold.LocallyLinearEmbedding(
-        n_neighbors=n_neighbors, n_components=n_components,
+        n_components=n_components,
         method='modified',
         n_jobs=mf_n_jobs
     )
 
-    hlle_clf = manifold.LocallyLinearEmbedding(
-        n_neighbors=n_neighbors, n_components=n_components,
-        method='hessian',
-        n_jobs=mf_n_jobs
-    )
+    # hlle_clf = manifold.LocallyLinearEmbedding(
+    #     n_components=n_components,
+    #     method='hessian',
+    #     n_jobs=mf_n_jobs
+    # )
 
     ltsa_clf = manifold.LocallyLinearEmbedding(
-        n_neighbors=n_neighbors, n_components=n_components,
+        n_components=n_components,
         method='ltsa',
         n_jobs=mf_n_jobs
     )
 
     # umap_clf = umap.UMAP(
-    #     n_neighbors=n_neighbors, n_components=n_components
+    #     n_components=n_components,
     # )
 
     # manifold transformations
     trans_clfs = [
-        (isomap_clf, name_format.format("isomap")),
-        (lle_clf, name_format.format("lle")),
-        (mlle_clf, name_format.format("mlle")),
-        (hlle_clf, name_format.format("hlle")),
-        (ltsa_clf, name_format.format("ltsa")),
-        # (umap_clf, name_format.format("umap")),
+        (isomap_clf, "isomap"),
+        (lle_clf, "lle"),
+        (mlle_clf, "mlle"),
+        # (hlle_clf, "hlle"),
+        (ltsa_clf, "ltsa"),
+        # (umap_clf, "umap"),
     ]
 
     return trans_clfs
@@ -114,7 +114,7 @@ def generate_all_dim_reductors():
     consisting of transformer object and its name. 
 
     Yields:
-        (transformer, str): a tuple with transformer and its short name
+        (transformer, str, dict): a tuple with transformer, its short name and param_dict
     """
 
     # SumOfDifference dimensionality reductors (TA default reductor)
@@ -122,28 +122,28 @@ def generate_all_dim_reductors():
 
         sod_dim_rdc = SumOfDifferenceFeatureSelector(
             n_components=n_components,
-            feature_spacing=sod_feature_spacing
+            feature_spacing=min(floor(100 / n_components), 5)
         )
-        yield (sod_dim_rdc, f"sod_{n_components}")
+        yield (sod_dim_rdc, f"sod_{n_components}", None)
 
     # PCA (probably good idea to test it as well)
     for n_components in pca_n_components:
         pca_dim_rdc = PCA(n_components=n_components)
-        yield (pca_dim_rdc, f"pca_{n_components}")
+        yield (pca_dim_rdc, f"pca_{n_components}", None)
 
     # all manifold reductors
-    for params in generate_params_grid(mf_parameters_dict):
+    for n_components in mf_n_components:
 
         manifold_dim_rds = generate_manifold_tranformations(
-            n_components=params["n_components"],
-            n_neighbors=params["n_neighbors"]
+            n_components=n_components
         )
 
-        yield from manifold_dim_rds
+        param_dict = mf_parameters_dict["n_components"][n_components]
+        for dim_rdc, dim_rdc_name in manifold_dim_rds:
+            yield (dim_rdc,  f"{dim_rdc_name}_{n_components}", param_dict)
 
 
 ################################### main ######################################
-
 # create output dir
 now = datetime.now()
 timestamp = now.strftime("%d_%m_%Y_%H_%M_%S")
@@ -161,41 +161,43 @@ for dataset in datasets:
         # if traces is X, aes_output_fn(plain, key) can be seen as y
         aes_output_fn = get_aes_output_for_leakage(leakage_model)
 
-        for dim_rdc, dim_rdc_name in generate_all_dim_reductors():
+        for dim_rdc, dim_rdc_name, param_dict in generate_all_dim_reductors():
 
             print("Running experiment:", end=" ")
             print(dataset, leakage_model.name, dim_rdc_name, sep=" - ")
 
-            if PREVIEW:                   
+            if PREVIEW:
                 continue
 
             # try to run experimnt
             ge = sr = fail_msg = None
-            try:
-                ge, sr = run_experiment(
-                    data, aes_output_fn, dim_rdc,
-                    GE_N_TRACES, GE_N_EXPERIMENTS
-                )
-            except Exception as e:
-                fail_msg = str(e)
+            # try:
+            ge, sr = run_experiment(
+                data, aes_output_fn,
+                dim_rdc, param_dict,
+                GE_N_EXPERIMENTS
+            )
+            # except Exception as e:
+            #     print("Experiment failed:", e)
+            #     fail_msg = str(e)
 
-
-            # report to file 
-            #create file
-            fileName = dataset + "_"+ leakage_model.name + "_" + dim_rdc_name + ".txt"
-            resFile= open("results/"+folderName+"/"+fileName,"w+")
-            #write to file
-            if ge.size>0:
+            # report to file
+            # create file
+            fileName = dataset + "_" + leakage_model.name + "_" + dim_rdc_name + ".txt"
+            resFile = open("results/"+folderName+"/"+fileName, "w+")
+            # write to file
+            if ge.size > 0:
                 resFile.write("ge:")
                 resFile.write("\n")
                 for item in ge:
                     resFile.write("%s;" % item)
                 resFile.write("\n")
-            if sr.size>0: 
+            if sr.size > 0:
                 resFile.write("sr:")
                 resFile.write("\n")
                 for item in sr:
                     resFile.write("%s;" % item)
                 resFile.write("\n")
-            if fail_msg: resFile.write(fail_msg)
+            if fail_msg:
+                resFile.write(fail_msg)
             resFile.close()

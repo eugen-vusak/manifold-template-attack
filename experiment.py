@@ -1,55 +1,82 @@
-from sklearn.feature_selection import SelectKBest, f_regression
+from utils.sklearn_wrappers import TransformedTargetTransformer
+import numpy as np
+from sklearn.feature_selection import SelectKBest, f_regression, VarianceThreshold
+from sklearn.model_selection import GridSearchCV
+from sklearn.pipeline import Pipeline
+from sklearn.compose import ColumnTransformer
 
-from utils.measure import guessing_entropy_and_success_rate
+from utils.measure import guessing_entropy_and_success_rate, make_ge_scoring
 from utils.TA import TemplateAttack
 
 
-def run_experiment(data, output_fn, dim_rdc, n_traces, n_experiments):
+def run_experiment(data, output_fn, dim_rdc, dim_rdc_param_grid, n_experiments):
 
-    # unpack data
+    # Unpack data
     ((tracesTrain, ptTrain, keyTrain),
      (tracesTest, ptTest, keyTest)) = data
 
-    ########################################################################
-    ############################## Profiling ###############################
-    ########################################################################
+    # Prepare data
+    ##  X = (traces | plain_text)
+    ##  y = key
+    X_train = np.hstack((tracesTrain, ptTrain.reshape(-1, 1)))
+    y_train = keyTrain
+    X_test = np.hstack((tracesTest, ptTest.reshape(-1, 1)))
+    y_test = keyTest
 
-    # feature selection
-    feature_sel = SelectKBest(f_regression, k=300)
+    # Build model
+    tracesTransformer = Pipeline([
+        ("var",             VarianceThreshold()),
+        ("feature_sel",     SelectKBest(f_regression, k=300)),
+        ("dim_rdc",         dim_rdc)
+    ])
 
-    ta = TemplateAttack(output_fn)
+    tracesTransformer = ColumnTransformer(
+        transformers=[("ct", tracesTransformer, slice(-1))],
+        remainder="passthrough"
+    )
 
-    # calculate hamming value of sbox output
-    # for the first bit of the plain text
-    outputTrain = output_fn(ptTrain, keyTrain)
+    def transform_key_to_output(X, y):
+        plain = X[:, -1].astype(np.int8)
+        key = y
+        return output_fn(plain, key)
 
-    # feature selection fit_transform on train data
-    tracesTrain = feature_sel.fit_transform(tracesTrain, outputTrain)
+    tracesTransformer = TransformedTargetTransformer(
+        tracesTransformer,
+        func=transform_key_to_output
+    )
 
-    # dimensionality reduction fit_transform on train data
-    tracesTrain = dim_rdc.fit_transform(tracesTrain, outputTrain)
+    model = Pipeline([
+        ("tracesTrans", tracesTransformer),
+        ("TA",  TemplateAttack(output_fn))
+    ])
 
-    # create template
-    ta.create_template(tracesTrain, output=outputTrain)
+    if dim_rdc_param_grid is not None:
 
-    ########################################################################
-    ################################ Attack ################################
-    ########################################################################
+        param_grid = {
+            f"tracesTrans__ct__dim_rdc__{k}": v
+            for k, v in dim_rdc_param_grid.items()
+        }
 
-    # feature selection transform test data
-    tracesTest = feature_sel.transform(tracesTest)
+        model = GridSearchCV(
+            model,
+            param_grid=param_grid,
+            cv=5,
+            verbose=3,
+            scoring=make_ge_scoring(n_experiments)
 
-    # dimensionality reduction transform test data
-    tracesTest = dim_rdc.transform(tracesTest)
+        )
 
-    # get probability densities for every possible keyguess
-    ta_logpdfs = ta.logpdfs(tracesTest, ptTest)
+    # Profiling
+    model.fit(X_train, y_train)
+
+    # Attack
+    scores = model.predict_proba(X_test)
 
     # compute measures (GE and SR)
-    # currently only working if all keys are same in keyTest
     ge, sr = guessing_entropy_and_success_rate(
-        ta_logpdfs, keyTest[0],
-        number_of_traces=n_traces,
-        number_of_experiments=n_experiments)
+        scores,
+        y_train[0],
+        number_of_experiments=n_experiments
+    )
 
     return ge, sr

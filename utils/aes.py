@@ -24,20 +24,25 @@ sbox = np.array([
 
 hamming = np.array([bin(subkey).count("1") for subkey in subkeys])
 
+
 class LeakageModel(Enum):
     intermediate = auto()
     HW = auto()
 
+
 def aes_output(plain, key):
     return sbox[plain ^ key]
 
+
 def aes_output_HW(plain, key):
     return hamming[aes_output(plain, key)]
+
 
 leakage_to_output_fn = {
     LeakageModel.intermediate: aes_output,
     LeakageModel.HW: aes_output_HW,
 }
+
 
 def get_aes_output_for_leakage(leakage_model: LeakageModel):
     return leakage_to_output_fn[leakage_model]

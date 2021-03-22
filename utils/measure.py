@@ -1,21 +1,36 @@
 import numpy as np
 
-def guessing_entropy_and_success_rate(y_log_proba, secret_key, number_of_traces, number_of_experiments=50):
+
+def make_ge_scoring(number_of_experiments):
+
+    def ge_scoring(clf, X, y):
+        scores = clf.predict_proba(X)
+
+        # compute measures (GE and SR)
+        np.random.seed(43)
+        ge, sr = guessing_entropy_and_success_rate(
+            scores,
+            y[0],
+            number_of_experiments=number_of_experiments)
+
+        return ge[-1]
+
+    return ge_scoring
+
+
+def guessing_entropy_and_success_rate(y_log_proba, secret_key, number_of_experiments=50):
 
     N, L = y_log_proba.shape
 
-    GE = np.zeros(number_of_traces)
-    SR = np.zeros(number_of_traces)
+    GE = np.zeros(N)
+    SR = np.zeros(N)
 
     for _ in range(number_of_experiments):
 
-        # generate random sample indexes
-        random_indexes = np.random.choice(np.arange(N), number_of_traces)
-
-        y_log_proba_sample = y_log_proba[random_indexes]
+        np.random.shuffle(y_log_proba)
 
         # compute cumulative sum of log_probas (log of cumulative product)
-        cumsum = y_log_proba_sample.cumsum(axis=0)
+        cumsum = y_log_proba.cumsum(axis=0)
 
         # argsort to find rank of key guesses (first is worst, last is best)
         ranked_key_guesses = cumsum.argsort(axis=1)
