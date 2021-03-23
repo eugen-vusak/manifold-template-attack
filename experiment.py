@@ -50,6 +50,9 @@ def run_experiment(data, output_fn, dim_rdc, dim_rdc_param_grid, n_experiments):
         ("TA",  TemplateAttack(output_fn))
     ])
 
+
+    gridSearch_res = None
+    
     if dim_rdc_param_grid is not None:
 
         param_grid = {
@@ -65,6 +68,8 @@ def run_experiment(data, output_fn, dim_rdc, dim_rdc_param_grid, n_experiments):
             scoring=make_ge_scoring(n_experiments)
 
         )
+        
+        gridSearch_res = model
 
     # Profiling
     model.fit(X_train, y_train)
@@ -79,4 +84,4 @@ def run_experiment(data, output_fn, dim_rdc, dim_rdc_param_grid, n_experiments):
         number_of_experiments=n_experiments
     )
 
-    return ge, sr
+    return ge, sr, gridSearch_res

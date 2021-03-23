@@ -21,7 +21,7 @@ GE_N_EXPERIMENTS = 100
 
 
 datasets = [
-    # "chipwhisperer",
+    #"chipwhisperer",
     "ascad_fixed",
     "ascad_variable",
     "ches_ctf"
@@ -126,7 +126,7 @@ def generate_all_dim_reductors():
         )
         yield (sod_dim_rdc, f"sod_{n_components}", None)
 
-    # PCA (probably good idea to test it as well)
+    # # PCA (probably good idea to test it as well)
     for n_components in pca_n_components:
         pca_dim_rdc = PCA(n_components=n_components)
         yield (pca_dim_rdc, f"pca_{n_components}", None)
@@ -170,9 +170,9 @@ for dataset in datasets:
                 continue
 
             # try to run experimnt
-            ge = sr = fail_msg = None
+            ge = sr = gridSearch_res = fail_msg = None
             # try:
-            ge, sr = run_experiment(
+            ge, sr, gridSearch_res = run_experiment(
                 data, aes_output_fn,
                 dim_rdc, param_dict,
                 GE_N_EXPERIMENTS
@@ -186,6 +186,13 @@ for dataset in datasets:
             fileName = dataset + "_" + leakage_model.name + "_" + dim_rdc_name + ".txt"
             resFile = open("results/"+folderName+"/"+fileName, "w+")
             # write to file
+            if gridSearch_res != None:
+                resFile.write("Grid Search params:")
+                for item in gridSearch_res:
+                        resFile.write("%s;" % item)  
+                        resFile.write("\n")
+            else:
+                resFile.write("No Grid Search.\n")
             if ge.size > 0:
                 resFile.write("ge:")
                 resFile.write("\n")
