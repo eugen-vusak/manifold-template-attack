@@ -188,10 +188,11 @@ for dataset in datasets:
             # write to file
             if gridSearch_res != None:
                 resFile.write("Grid Search params:")
-                for item in gridSearch_res:
-                        resFile.write("%s;" % item)  
-                        resFile.write("\n")
-            else:
+                resFile.write("\n")
+                resFile.write("best_params_: %s;" % gridSearch_res.best_params_)  
+                resFile.write("cv_results_: %s;" % gridSearch_res.cv_results_) 
+                resFile.write("\n")
+            if gridSearch_res == None:
                 resFile.write("No Grid Search.\n")
             if ge.size > 0:
                 resFile.write("ge:")

@@ -69,10 +69,14 @@ def run_experiment(data, output_fn, dim_rdc, dim_rdc_param_grid, n_experiments):
 
         )
         
-        gridSearch_res = model
+       
 
     # Profiling
     model.fit(X_train, y_train)
+    
+    #save grid results if grid performed
+    if dim_rdc_param_grid is not None:
+        gridSearch_res = model
 
     # Attack
     scores = model.predict_proba(X_test)

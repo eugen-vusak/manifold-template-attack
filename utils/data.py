@@ -24,10 +24,26 @@ def load_data_ASCAD(filename, target_byte=None):
         profiling_key = profiling_key[:, target_byte]
         attack_plaintext = attack_plaintext[:, target_byte]
         attack_key = attack_key[:, target_byte]
+        
+    #!!!!!!using smaller dataset    
+    profilingTracesShort = profiling_traces[:5000]
+    profilingPlaintextShort = profiling_plaintext[:5000]
+    profilingKeyShort = profiling_key[:5000]
+    
+    attackTracesShort = attack_traces[:1000]
+    attackPlaintextShort = attack_plaintext[:1000]
+    attackKeyShort = attack_key[:1000]
 
+#!!!!!!uncomment if not using smaller dataset!!!!!!
+#    return (
+#        (profiling_traces, profiling_plaintext, profiling_key),
+#        (attack_traces, attack_plaintext, attack_key)
+#    )
+    
+#!!!!!!comment if not using smaller dataset!!!!!!
     return (
-        (profiling_traces, profiling_plaintext, profiling_key),
-        (attack_traces, attack_plaintext, attack_key)
+        (profilingTracesShort, profilingPlaintextShort, profilingKeyShort),
+        (attackTracesShort, attackPlaintextShort, attackKeyShort)
     )
 
 
