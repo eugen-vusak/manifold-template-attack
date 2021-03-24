@@ -21,7 +21,7 @@ GE_N_EXPERIMENTS = 100
 
 
 datasets = [
-    #"chipwhisperer",
+    "chipwhisperer",
     "ascad_fixed",
     "ascad_variable",
     "ches_ctf"
@@ -153,6 +153,9 @@ parent_dir = "results/"
 path = os.path.join(parent_dir, directory)
 os.makedirs(path)
 
+
+
+
 for dataset in datasets:
     data = load_data(DATA_ROOT/dataset, TARGET_BYTE)
 
@@ -165,47 +168,67 @@ for dataset in datasets:
 
             print("Running experiment:", end=" ")
             print(dataset, leakage_model.name, dim_rdc_name, sep=" - ")
+            
+            now = datetime.now()
+            timestamp = now.strftime("%d_%m_%Y_%H_%M_%S")
+            trainSize= data[0]
+            testSize = data[1]
+            logName = "log.txt"
+            logFile = open("results/"+folderName+"/"+logName, "a+")
+            logFile.write("********* " + timestamp + "\n")
+            logFile.write("Running experiment: " + dataset + " - " + leakage_model.name + " - " + dim_rdc_name  )
+            logFile.write("\n")
+            logFile.write("Dataset size: train - " + str(len(trainSize[1])) + ", test - " + str(len(testSize[1])))
+            logFile.write("\n")
 
             if PREVIEW:
                 continue
 
             # try to run experimnt
             ge = sr = gridSearch_res = fail_msg = None
-            # try:
-            ge, sr, gridSearch_res = run_experiment(
-                data, aes_output_fn,
-                dim_rdc, param_dict,
-                GE_N_EXPERIMENTS
-            )
-            # except Exception as e:
-            #     print("Experiment failed:", e)
-            #     fail_msg = str(e)
+            
+            try:
+                ge, sr, gridSearch_res = run_experiment(
+                    data, aes_output_fn,
+                    dim_rdc, param_dict,
+                    GE_N_EXPERIMENTS
+                )
+            except Exception as e:
+                 print("Experiment failed:", e)
+                 fail_msg = str(e)
 
             # report to file
             # create file
             fileName = dataset + "_" + leakage_model.name + "_" + dim_rdc_name + ".txt"
             resFile = open("results/"+folderName+"/"+fileName, "w+")
+            
             # write to file
-            if gridSearch_res != None:
-                resFile.write("Grid Search params:")
-                resFile.write("\n")
-                resFile.write("best_params_: %s;" % gridSearch_res.best_params_)  
-                resFile.write("cv_results_: %s;" % gridSearch_res.cv_results_) 
-                resFile.write("\n")
-            if gridSearch_res == None:
-                resFile.write("No Grid Search.\n")
-            if ge.size > 0:
-                resFile.write("ge:")
-                resFile.write("\n")
-                for item in ge:
-                    resFile.write("%s;" % item)
-                resFile.write("\n")
-            if sr.size > 0:
-                resFile.write("sr:")
-                resFile.write("\n")
-                for item in sr:
-                    resFile.write("%s;" % item)
-                resFile.write("\n")
             if fail_msg:
-                resFile.write(fail_msg)
+                resFile.write("!!!Experiment failed: " + fail_msg)
+                logFile.write("!!!Experiment failed: " + fail_msg)
+                logFile.write("\n")
+            else:
+                if gridSearch_res != None:
+                    resFile.write("Grid Search params:")
+                    resFile.write("\n")
+                    resFile.write("best_params_: %s;" % gridSearch_res.best_params_)  
+                    resFile.write("cv_results_: %s;" % gridSearch_res.cv_results_) 
+                    resFile.write("\n")
+                if gridSearch_res == None:
+                    resFile.write("No Grid Search.\n")
+                if ge.size > 0:
+                    resFile.write("ge:")
+                    resFile.write("\n")
+                    for item in ge:
+                        resFile.write("%s;" % item)
+                    resFile.write("\n")
+                if sr.size > 0:
+                    resFile.write("sr:")
+                    resFile.write("\n")
+                    for item in sr:
+                        resFile.write("%s;" % item)
+                    resFile.write("\n")
+
             resFile.close()
+            logFile.write("\n\n")
+            logFile.close()

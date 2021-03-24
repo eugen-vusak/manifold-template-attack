@@ -63,10 +63,27 @@ def load_data_ches_ctf(filename):
     (attack_plaintext,
      attack_output,
      attack_key) = np.split(attack_data, [16, 32], axis=1)
+    
+    #!!!!!!using smaller dataset    
+    profilingTracesShort = profiling_traces[:5000]
+    profilingPlaintextShort = profiling_plaintext[:5000]
+    profilingKeyShort = profiling_key[:5000]
+    
+    attackTracesShort = attack_traces[:1000]
+    attackPlaintextShort = attack_plaintext[:1000]
+    attackKeyShort = attack_key[:1000]
 
+
+    #!!!!!!uncomment if not using smaller dataset!!!!!!
+#    return (
+#        (profiling_traces, profiling_plaintext, profiling_key),
+#        (attack_traces, attack_plaintext, attack_key)
+#    )
+    
+    #!!!!!!comment if not using smaller dataset!!!!!!
     return (
-        (profiling_traces, profiling_plaintext, profiling_key),
-        (attack_traces, attack_plaintext, attack_key)
+        (profilingTracesShort, profilingPlaintextShort, profilingKeyShort),
+        (attackTracesShort, attackPlaintextShort, attackKeyShort)
     )
 
 
