@@ -3,7 +3,7 @@ from datetime import datetime
 from math import floor
 from pathlib import Path
 
-# import umap  # takes a bit to import
+import umap  # takes a bit to import
 from sklearn import manifold
 from sklearn.decomposition import PCA
 
@@ -91,9 +91,9 @@ def generate_manifold_tranformations(n_components):
         n_jobs=mf_n_jobs
     )
 
-    # umap_clf = umap.UMAP(
-    #     n_components=n_components,
-    # )
+    umap_clf = umap.UMAP(
+        n_components=n_components,
+    )
 
     # manifold transformations
     trans_clfs = [
@@ -102,7 +102,7 @@ def generate_manifold_tranformations(n_components):
         (mlle_clf, "mlle"),
         # (hlle_clf, "hlle"),
         (ltsa_clf, "ltsa"),
-        # (umap_clf, "umap"),
+        (umap_clf, "umap"),
     ]
 
     return trans_clfs
