@@ -56,38 +56,59 @@ for subFolder in subFolders:
                     res.parseResult(line)
                     results.append(res)
 
-#best values
-print("ches_ctf" +"-"+ "intermediate" +"-"+ "50")
-for result in results:
-    if result.datasetName=="ches_ctf" and result.leakageModel== "intermediate" and result.componentNo=="50":
-        if result.best_params != None:
-            print(result.method + ": " + str(result.best_params)) 
+
+datasets = [
+    #"chipwhisperer",
+    "ascad_fixed",
+    "ascad_variable",
+    "ches_ctf"
+]
+
+leakage_models = [
+    "intermediate",
+    "HW"
+]
+
+comp_num = [
+    "10", "25", "50", "75", "100"
+]
+
+
+for ds in datasets:
+    for lm in leakage_models:
+        for cn in comp_num:            
+            print(ds +"-" + lm +"-" + cn)
+            print("Best neighbour vals:")
+            plt.figure()
             
+            for result in results:
+                if result.datasetName==ds and result.leakageModel== lm and result.componentNo==cn:
+                    #best values
+                    if result.best_params != None:
+                        print(result.method + ": " + str(result.best_params)) 
+                    #GE                    
+                    plt.plot(result.geData, label=result.method)
 
+            
+            plt.title(ds +"-" + lm +"-" + cn)  
+            plt.ylabel("GE vals")
+            plt.legend(bbox_to_anchor=(1.05, 1.0), loc='upper left')
+            plt.savefig(rootFolderName + "/" + ds +"-" + lm +"-" + cn + ".png", bbox_inches = "tight")
+            plt.show()
+            
+            
+            # #SR
+            # plt.figure()
+            # for result in results:
+            #     if result.datasetName=="ascad_fixed" and result.leakageModel== "intermediate" and result.componentNo=="10":
+            #         plt.plot(result.srData, label=result.method)
+                 
+            # plt.title(result.datasetName +"-"+ result.leakageModel +"-"+ result.componentNo)           
+            # plt.ylabel("SR vals")
+            # plt.legend()
+            # plt.show()
 
-#GE
-plt.figure()
-for result in results:
-    if result.datasetName=="ches_ctf" and result.leakageModel== "intermediate" and result.componentNo=="50":
-        plt.plot(result.geData, label=result.method)
-
-plt.title(result.datasetName +"-"+ result.leakageModel +"-"+ result.componentNo)  
-plt.ylabel("GE vals")
-plt.legend()
-plt.show()
-
-
-#SR
-plt.figure()
-for result in results:
-    if result.datasetName=="ches_ctf" and result.leakageModel== "intermediate" and result.componentNo=="50":
-        plt.plot(result.srData, label=result.method)
-     
-plt.title(result.datasetName +"-"+ result.leakageModel +"-"+ result.componentNo)           
-plt.ylabel("SR vals")
-plt.legend()
-plt.show()
-
-print("Finished")
+            print("*********************************")
+            print("*********************************")
                 
     

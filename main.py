@@ -28,7 +28,7 @@ datasets = [
 ]
 
 leakage_models = [
-    #LeakageModel.intermediate,
+    LeakageModel.intermediate,
     LeakageModel.HW
 ]
 
