@@ -21,14 +21,14 @@ GE_N_EXPERIMENTS = 100
 
 
 datasets = [
-    "chipwhisperer",
+    #"chipwhisperer",
     "ascad_fixed",
     "ascad_variable",
     "ches_ctf"
 ]
 
 leakage_models = [
-    LeakageModel.intermediate,
+    #LeakageModel.intermediate,
     LeakageModel.HW
 ]
 
@@ -117,7 +117,7 @@ def generate_all_dim_reductors():
         (transformer, str, dict): a tuple with transformer, its short name and param_dict
     """
 
-    # SumOfDifference dimensionality reductors (TA default reductor)
+    # # SumOfDifference dimensionality reductors (TA default reductor)
     for n_components in sod_n_components:
 
         sod_dim_rdc = SumOfDifferenceFeatureSelector(
